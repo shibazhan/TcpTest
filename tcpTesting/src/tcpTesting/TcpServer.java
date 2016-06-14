@@ -26,7 +26,5 @@ public class TcpServer {
 			e.printStackTrace();
 		}
 	}
-    public  static void stop(){
-    	serverThread.interrupt();
-    }
+
 }

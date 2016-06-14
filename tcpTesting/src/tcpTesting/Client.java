@@ -1,11 +1,7 @@
 package tcpTesting;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
@@ -20,11 +16,8 @@ public class Client {
     private String IP;//IP地址
     private String client_msg;//测试消息
     private String kind="应答模式";//默认是应答模式
-    private int dely;//间隔时间
-    
-    
-    public int control=0;
-    public static String connect_text;
+    private int dely;//间隔时间 
+    public static String connect_text="正在测试......";
     
     public Client(){}
     public Client(String IP,int port,int numTasks,String msg,String kind,int dely){
@@ -50,64 +43,61 @@ public class Client {
 
     //连接测试
 
-    public void connect() throws InterruptedException{
-    	init();
-        table=new String[6];//表格信息六列          
-    	listRecords.insertRow(0,title); //第一行显示标题数据
-		table[2]="1";
-		table[3]=String.valueOf(client_msg.getBytes().length);
-		table[4]="1";
-		table[5]=String.valueOf(client_msg.getBytes().length);
-		int i;
-        for (i = 1; i <=numTasks; i++) {
-        	//如果出现连接异常，跳出循环
-        	if(control==1)
-        		break;
-        	//向发送池提交任务，进行测试
-        	test();   	
-        	connect_text=String.valueOf(i);
-        	if(kind.equals("间隔模式"))
-        	{
-        		Thread.sleep(dely);
-        		table[1]=String.valueOf(dely);  
-        	}else{
-        		table[1]="0";
-        	}
-        	table[0]=String.valueOf(i);	
-        	
-			listRecords.insertRow(i,table);
-        }
-    }
-    
+public void start() throws InterruptedException{
 
-    
-    
-	public void test() {
-		try {
-			//1.创建客户端Socket，指定服务器地址和端口
-			Socket socket=new Socket(IP, port);
-			//2.获取输出流，向服务器端发送信息
-			OutputStream os=socket.getOutputStream();//字节输出流
-			PrintWriter pw=new PrintWriter(os);//将输出流包装为打印流
-			pw.write(client_msg);
-			pw.flush();
-			socket.shutdownOutput();//关闭输出流
-			//3.获取输入流，并读取服务器端的响应信息
-			InputStream is=socket.getInputStream();
-			BufferedReader br=new BufferedReader(new InputStreamReader(is));
-			String info=null;
-			while((info=br.readLine())!=null){
-				System.out.println("我是客户端，服务器说："+info);
+		ExecutorService pools = Executors.newCachedThreadPool();
+		// 创建POOL_SIZE个并发
+		if(kind.equals("间隔模式")){
+			for (int i = 0; i < numTasks; i++) {
+				Thread.sleep(dely);
+				pools.execute(new Handler(IP,port,client_msg)); 
+				
 			}
-			//4.关闭资源
-//			br.close();
-//			is.close();
-			pw.close();
-			os.close();
-			//socket.close();
-		} catch (Exception e) {
-			control=1;
-			e.printStackTrace();
-		} 
+		}
+		else{
+			for (int i = 0; i < numTasks; i++) {
+				
+				pools.execute(new Handler(IP,port,client_msg)); 
+				
+			}
+		}
+
+		
+		// 发起线程池终止请求, 等待正在执行以及尚未执行的任务结束
+		pools.shutdown();
+		
+		// 轮询线程池中的任务是否全部结束
+		while(!pools.isTerminated()){
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+			}
+		}
+		
+		//用于显示测试的信息
+	connect_text = "共有"+numTasks+"个用户请求连接！"+
+						"成功并发数量:"+ShareParam.getSuccessed()+
+						"失败并发数量:"+ShareParam.getFailed();
+		
+	//将测试成功的数据显示在JTable表中
+	init();
+    table=new String[6];//表格信息六列          
+	listRecords.insertRow(0,title); //第一行显示标题数据
+	table[2]="1";
+	table[3]=String.valueOf(client_msg.getBytes().length);
+	table[4]="1";
+	table[5]=String.valueOf(client_msg.getBytes().length);
+	for(int j=1;j<ShareParam.getSuccessed();j++){ 	
+    	if(kind.equals("间隔模式"))
+    	{
+    		table[1]=String.valueOf(dely);  
+    	}else{
+    		table[1]="0";
+    	}
+    	table[0]=String.valueOf(j);	    	
+		listRecords.insertRow(j,table);
 	}
+		ShareParam.resetShareParam();
+	}
+    
 }

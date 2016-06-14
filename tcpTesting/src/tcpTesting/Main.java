@@ -32,7 +32,7 @@ public class Main extends JFrame {
 	private JLabel time=new JLabel("ms");
 	private JLabel save=new JLabel();
     public static JLabel error=new JLabel();
-	int count=0;
+	
 	//输入文本框
     private JTextField TcomputerIp=new JTextField(6);
     private JTextField Tport=new JTextField(6);
@@ -120,22 +120,20 @@ public class Main extends JFrame {
 				int port=Integer.parseInt(Tport.getText());
 				int numTasks=Integer.parseInt(TuserNum.getText());
 				int interval=Integer.parseInt(TsendInterval.getText());
-				String msg=save.getText();
-				
+				String msg=save.getText();			
 				
 				try {
 				    if(save.getText()==""){
 				    	JOptionPane.showMessageDialog(null, "请编辑发送内容");
 				    }else{
 				    	if(Ttype.getSelectedItem().toString().equals("应答模式")){
-				    		new Client(ip,port,numTasks,msg,"应答模式",0).connect();
+				    		new Client(ip,port,numTasks,msg,"应答模式",0).start();
 				    	}
 				    	else{
-				    		new Client(ip,port,numTasks,msg,Ttype.getSelectedItem().toString(),interval).connect();
+				    		new Client(ip,port,numTasks,msg,Ttype.getSelectedItem().toString(),interval).start();
 				    	}
 				    	error.repaint();
-				    	count=count+Integer.parseInt(Client.connect_text);
-					    error.setText(Client.connect_text+"个用户成功建立连接，可支持总的并发数为："+count);					    
+					    error.setText(Client.connect_text);					    
 					    error.setForeground(Color.red);
 						box.setLayout(new BorderLayout());
 						box.add("Center",Client.chart);
@@ -149,7 +147,7 @@ public class Main extends JFrame {
 		});
 		stop.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				TcpServer.stop();
+				setVisible(false);
 			}
 		});
 		text.addActionListener(new ActionListener(){
